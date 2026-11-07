@@ -1,0 +1,33 @@
+{
+  "projectId": "prj_f7C2kjOQUyg9NmnsQ8L4sptSfqJ0",
+  "teamId": "team_NQF4FvSoEffTHO6x1C5mIpJW",
+  "projectName": "29-10-2026temp-album",
+  "productionUrl": "https://29-10-2026temp-album.vercel.app",
+  "sourceDirectory": "dist",
+  "current": {
+    "deploymentId": "dpl_A9Quc6TBYNJKcoWmPC31qzcFXPUA",
+    "immutableUrl": "https://29-10-2026temp-album-axkprrwxq-mash-s-projects2.vercel.app",
+    "sourceCommit": "8cd23910d1d6f1474f48080d63c9598a39132f41",
+    "state": "READY",
+    "readyAt": "2026-11-07T08:12:11.166Z",
+    "previewDeploymentId": "dpl_UR5aXYK4KQau9rgorZ23rnMbeNsE",
+    "sourceFilesVerified": 53,
+    "publicFilesVerified": [
+      "app.js",
+      "assets/flags/sa.png",
+      "assets/flags/sy.png",
+      "assets/flags-sky-background.png",
+      "assets/instagram-agency-signature.png",
+      "flags.css",
+      "index.html"
+    ]
+  },
+  "rollback": {
+    "deploymentId": "dpl_2kVQCHdqt32wwbaRD3448BhQtQSa",
+    "immutableUrl": "https://29-10-2026temp-album-ai11b4fdm-mash-s-projects2.vercel.app",
+    "backupDirectory": "release-backups/2026-11-07_11-03-52-627-pre-vercel",
+    "archive": "previous-vercel-production.zip",
+    "filesVerified": 49
+  },
+  "policy": "Before every update, retain a dated local backup and the previous Vercel production deployment. Never delete old backups or deployments automatically."
+}

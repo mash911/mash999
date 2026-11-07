@@ -13,6 +13,9 @@ sanaLogo.src = 'assets/sana-logo.png';
 // transparency below so the embedded dark/blue gradient can never form boxes.
 const albumEssentials = new Image();
 albumEssentials.src = 'assets/overlay.png';
+const instagramAgencySignature = new Image();
+instagramAgencySignature.src = 'assets/instagram-agency-signature.png';
+instagramAgencySignature.addEventListener('load', () => { if (currentMode === 'instagram') scheduleRender(); });
 const albumGradientTop = new Image();
 albumGradientTop.src = 'assets/album-gradient-top.png';
 const albumGradientLeft = new Image();
@@ -43,6 +46,9 @@ const reporterBadge = new Image();
 reporterBadge.src = 'assets/reporter-badge.png';
 const flagsMockupBlank = new Image();
 flagsMockupBlank.src = 'assets/crossed-flags-blank-v2.png';
+const flagsSkyBackground = new Image();
+flagsSkyBackground.src = 'assets/flags-sky-background.png';
+flagsSkyBackground.addEventListener('load', () => { if (currentMode === 'flags') scheduleRender(); });
 const flagLeftCloth = new Image();
 flagLeftCloth.src = 'assets/crossed-flags-left-full-v3.png';
 const flagRightCloth = new Image();
@@ -220,8 +226,11 @@ const modeStates = {
 
 const flagState = {
   activeSide: 'left',
-  left: { image: null, label: '', objectUrl: '' },
-  right: { image: null, label: '', objectUrl: '' },
+  background: 'sky',
+  downloadUrl: '',
+  exporting: false,
+  left: { image: null, label: '', objectUrl: '', countryCode: '' },
+  right: { image: null, label: '', objectUrl: '', countryCode: '' },
   defaultsLoaded: false
 };
 
@@ -641,6 +650,35 @@ function drawAlbumEssentialRegion(target, x, y, width, height) {
   target.drawImage(cleanAlbumEssentials, x, y, width, height, x, y, width, height);
 }
 
+function drawInstagramCarouselMarkers(target) {
+  // These are deliberately drawn separately from the supplied essentials PNG.
+  // The PNG has legacy blue/grey dots, while the approved Instagram treatment
+  // uses white markers with fixed transparency values.
+  [
+    { x: 505, opacity: 1 },    // left: solid white
+    { x: 535, opacity: 0.8 },  // middle: 80% solid white
+    { x: 565, opacity: 0.6 }   // right: 60% solid white
+  ].forEach(({ x, opacity }) => {
+    target.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+    target.beginPath();
+    target.arc(x, 1240, 10, 0, Math.PI * 2);
+    target.fill();
+  });
+}
+
+function drawInstagramAgencySignature(target) {
+  if (!instagramAgencySignature.complete || !instagramAgencySignature.naturalWidth) return;
+  // The supplied artwork is the signature: retain its letterforms, spacing,
+  // colour and proportions rather than extracting small glyphs or retyping it.
+  const width = 142;
+  const height = width * instagramAgencySignature.naturalHeight / instagramAgencySignature.naturalWidth;
+  target.save();
+  target.imageSmoothingEnabled = true;
+  target.imageSmoothingQuality = 'high';
+  target.drawImage(instagramAgencySignature, 1427 - width, 1250 - height, width, height);
+  target.restore();
+}
+
 function drawInstagramEssentials(target) {
   target.save();
 
@@ -666,37 +704,23 @@ function drawInstagramEssentials(target) {
   target.fillText('sana.sy', 1282, 111);
 
   // Bottom-left carousel position markers.
-  [
-    { x: 505, color: '#ffffff' },
-    { x: 535, color: '#a7b4c8' },
-    { x: 565, color: '#7286a4' }
-  ].forEach(({ x, color }) => {
-    target.fillStyle = color;
-    target.beginPath();
-    target.arc(x, 1240, 10, 0, Math.PI * 2);
-    target.fill();
-  });
+  drawInstagramCarouselMarkers(target);
 
-  // Bottom-right agency signature, free of any source-image background.
-  target.direction = 'rtl';
-  target.textAlign = 'right';
-  target.textBaseline = 'alphabetic';
-  target.fillStyle = '#fff';
-  target.font = '24px GhroobBoldRound, Tahoma, sans-serif';
-  target.fillText('الوكالة العربية', 1450, 1221);
-  target.font = '21px GhroobRegular, Tahoma, sans-serif';
-  target.fillText('السورية للأنباء', 1450, 1247);
+  drawInstagramAgencySignature(target);
   target.restore();
 }
 
 function drawBrandLayout(target) {
   target.drawImage(cleanBrandLayout, 0, 0, WIDTH, HEIGHT);
   if (albumEssentials.complete && albumEssentials.naturalWidth) {
-    // Exact source positions: logo, link, carousel markers, agency signature.
+    // Exact source positions: logo and link. The agency signature uses its
+    // supplied high-resolution artwork instead of the old small PNG region.
+    // Carousel markers are rendered separately to preserve their approved
+    // white-opacity treatment rather than inheriting colours from the PNG.
     drawAlbumEssentialRegion(target, 470, 78, 200, 120);
     drawAlbumEssentialRegion(target, 1220, 75, 260, 85);
-    drawAlbumEssentialRegion(target, 460, 1185, 160, 100);
-    drawAlbumEssentialRegion(target, 1255, 1185, 230, 100);
+    drawInstagramAgencySignature(target);
+    drawInstagramCarouselMarkers(target);
   } else {
     drawInstagramEssentials(target);
   }
@@ -1122,7 +1146,17 @@ const FLAGS_WIDTH = 2048;
 const FLAGS_HEIGHT = 1278;
 const FLAGS_SOURCE_WIDTH = 1587;
 const FLAGS_SOURCE_HEIGHT = 991;
-function prepareFlagArt(image, side) {
+// The default pair is shipped with the editor. Opening the tab must never
+// depend on a third-party CDN before showing the first two flags.
+const BUNDLED_FLAG_ASSETS = {
+  sa: 'assets/flags/sa.png',
+  sy: 'assets/flags/sy.png'
+};
+// Flags with writing or script-derived emblems are printed with a readable
+// reverse side. The left flag is viewed from that reverse side in this mockup.
+const LEFT_READABLE_REVERSE_FLAGS = new Set(['sa', 'iq', 'ir', 'af']);
+
+function prepareFlagArt(image, side, countryCode = '') {
   flagArtContext.setTransform(1, 0, 0, 1, 0, 0);
   flagArtContext.clearRect(0, 0, flagArtCanvas.width, flagArtCanvas.height);
   flagArtContext.imageSmoothingEnabled = true;
@@ -1134,8 +1168,11 @@ function prepareFlagArt(image, side) {
   // The left flag is attached to a pole on its right edge. Mirror the whole
   // flag art before it reaches the fabric mesh so every country's hoist-side
   // symbols (for example the Philippine triangle) stay next to that pole.
+  // The countries above are the exception: their script must remain readable
+  // instead of being reflected with the fabric.
+  const readableReverse = side === 'left' && LEFT_READABLE_REVERSE_FLAGS.has(countryCode);
   flagArtContext.save();
-  if (side === 'left') {
+  if (side === 'left' && !readableReverse) {
     flagArtContext.translate(flagArtCanvas.width, 0);
     flagArtContext.scale(-1, 1);
   }
@@ -1213,7 +1250,7 @@ function drawWarpedFlagArt(target, side) {
   }
 }
 
-function drawFabricFlagV2(target, image, cloth, side) {
+function drawFabricFlagV2(target, image, cloth, side, countryCode = '') {
   if (!image?.naturalWidth || !cloth?.naturalWidth) return;
   flagWarpContext.save();
   flagWarpContext.setTransform(1, 0, 0, 1, 0, 0);
@@ -1221,7 +1258,7 @@ function drawFabricFlagV2(target, image, cloth, side) {
   flagWarpContext.clearRect(0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
   flagWarpContext.imageSmoothingEnabled = true;
   flagWarpContext.imageSmoothingQuality = 'high';
-  prepareFlagArt(image, side);
+  prepareFlagArt(image, side, countryCode);
   drawWarpedFlagArt(flagWarpContext, side);
   flagWarpContext.globalCompositeOperation = 'destination-in';
   flagWarpContext.drawImage(cloth, 0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
@@ -1253,16 +1290,52 @@ function drawFlagPoleOverlayV2(target) {
   target.restore();
 }
 
+function drawStandaloneFlagPoles(target) {
+  if (!flagsMockupBlank.naturalWidth) return;
+  target.save();
+  target.scale(FLAGS_WIDTH / FLAGS_SOURCE_WIDTH, FLAGS_HEIGHT / FLAGS_SOURCE_HEIGHT);
+  target.beginPath();
+  // Tight source-space outlines keep the original metal, without carrying
+  // the grey background corridors onto the sky or transparent PNG.
+  target.moveTo(690, 251);
+  target.lineTo(703, 248);
+  target.lineTo(972, 991);
+  target.lineTo(952, 991);
+  target.closePath();
+  target.moveTo(970, 248);
+  target.lineTo(983, 251);
+  target.lineTo(718, 991);
+  target.lineTo(698, 991);
+  target.closePath();
+  target.moveTo(711, 245);
+  target.ellipse(696, 245, 15.5, 7.4, -.28, 0, Math.PI * 2);
+  target.moveTo(994, 245);
+  target.ellipse(978, 245, 15.5, 7.4, .28, 0, Math.PI * 2);
+  target.clip();
+  target.drawImage(flagsMockupBlank, 0, 0, FLAGS_SOURCE_WIDTH, FLAGS_SOURCE_HEIGHT);
+  target.restore();
+}
+
 function drawFlagsMode(target) {
   target.save();
-  target.fillStyle = '#eeeeee';
-  target.fillRect(0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
-  if (flagsMockupBlank.complete && flagsMockupBlank.naturalWidth) {
-    target.drawImage(flagsMockupBlank, 0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
+  const originalBackground = flagState.background === 'original';
+  if (originalBackground) {
+    target.fillStyle = '#eeeeee';
+    target.fillRect(0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
+    if (flagsMockupBlank.naturalWidth) target.drawImage(flagsMockupBlank, 0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
+  } else if (flagState.background === 'sky' && flagsSkyBackground.naturalWidth) {
+    // Cover the complete output while preserving the supplied sky's aspect ratio.
+    const scale = Math.max(FLAGS_WIDTH / flagsSkyBackground.naturalWidth, FLAGS_HEIGHT / flagsSkyBackground.naturalHeight);
+    const width = flagsSkyBackground.naturalWidth * scale;
+    const height = flagsSkyBackground.naturalHeight * scale;
+    target.drawImage(flagsSkyBackground, (FLAGS_WIDTH - width) / 2, (FLAGS_HEIGHT - height) / 2, width, height);
   }
-  drawFabricFlagV2(target, flagState.left.image, flagLeftCloth, 'left');
-  drawFabricFlagV2(target, flagState.right.image, flagRightCloth, 'right');
-  drawFlagPoleOverlayV2(target);
+  if (!flagState.left.image && flagLeftCloth.naturalWidth) target.drawImage(flagLeftCloth, 0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
+  if (!flagState.right.image && flagRightCloth.naturalWidth) target.drawImage(flagRightCloth, 0, 0, FLAGS_WIDTH, FLAGS_HEIGHT);
+  drawFabricFlagV2(target, flagState.left.image, flagLeftCloth, 'left', flagState.left.countryCode);
+  drawFabricFlagV2(target, flagState.right.image, flagRightCloth, 'right', flagState.right.countryCode);
+  if (originalBackground) drawFlagPoleOverlayV2(target);
+  else drawStandaloneFlagPoles(target);
   target.restore();
 }
 
@@ -1293,6 +1366,11 @@ function renderTo(target, slide, previewMode = false) {
 
 function render() {
   renderQueued = false;
+  if (currentMode === 'flags' && flagState.downloadUrl) {
+    URL.revokeObjectURL(flagState.downloadUrl);
+    flagState.downloadUrl = '';
+    $('flagsDownloadLink').hidden = true;
+  }
   renderTo(ctx, current(), true);
   updateOutputs();
   renderThumbCanvases();
@@ -1363,6 +1441,8 @@ function syncControls() {
   const flagsMode = currentMode === 'flags';
   ['zoom','panX','panY','shade','blueShade','fill','contain','resetImage','setCover','deleteSlide','exportOne'].forEach((id) => $(id).disabled = !hasSlide);
   $('exportOne').disabled = flagsMode ? false : !hasSlide;
+  $('exportOne').textContent = flagsMode ? '↓ تحميل الصورة كاملة PNG' : '↓ تصدير الصورة';
+  $('dropZone').classList.toggle('transparent-background', flagsMode && flagState.background === 'transparent');
   ['quoteText','personName','jobTitle','quoteFont','quoteLineHeight','quoteY','nameFont','jobFont','nameY','quoteKashida','quoteConcentration','quotePosition','quoteReshuffle','quoteInsertKashida'].forEach((id) => $(id).disabled = !hasSlide && !quoteMode);
   ['reporterTitle','reporterManualLines','reporterJustify','reporterFont','reporterLineHeight','reporterY','reporterInsertKashida'].forEach((id) => $(id).disabled = !hasSlide);
   if (isAlbumMode()) {
@@ -1515,13 +1595,13 @@ function setActiveFlagSide(side) {
   document.querySelectorAll('.flag-control-card').forEach((card) => card.classList.toggle('active-side', card.dataset.side === flagState.activeSide));
 }
 
-async function setFlagImage(side, source, label, objectUrl = '') {
+async function setFlagImage(side, source, label, objectUrl = '', countryCode = '') {
   try {
     const image = typeof source === 'string' ? await loadImage(source) : source;
     if (!image?.naturalWidth) throw new Error('صورة غير صالحة');
     const target = flagState[side];
     if (target.objectUrl && target.objectUrl !== objectUrl) URL.revokeObjectURL(target.objectUrl);
-    Object.assign(target, { image, label, objectUrl });
+    Object.assign(target, { image, label, objectUrl, countryCode });
     $(`${side}FlagStatus`).textContent = label || 'تمت الإضافة';
     setActiveFlagSide(side === 'left' ? 'right' : 'left');
     scheduleRender();
@@ -1537,7 +1617,49 @@ async function setFlagFile(side, file) {
   if (!file?.type?.startsWith('image/')) return showToast('اختر ملف صورة صالحاً');
   const objectUrl = URL.createObjectURL(file);
   const image = await loadImage(objectUrl);
-  await setFlagImage(side, image, file.name, objectUrl);
+  const countryInput = $(side === 'left' ? 'leftCountry' : 'rightCountry');
+  await setFlagImage(side, image, file.name, objectUrl, countryCodeFor(countryInput?.value));
+}
+
+function fetchWithTimeout(url, milliseconds = 5500) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), milliseconds);
+  return fetch(url, { mode: 'cors', signal: controller.signal, cache: 'force-cache' })
+    .finally(() => window.clearTimeout(timer));
+}
+
+function loadImageWithTimeout(src, milliseconds = 5500) {
+  return Promise.race([
+    loadImage(src),
+    new Promise((_, reject) => window.setTimeout(() => reject(new Error('image_timeout')), milliseconds))
+  ]);
+}
+
+async function fetchCountryFlag(code) {
+  const sources = [
+    BUNDLED_FLAG_ASSETS[code],
+    `https://cdn.jsdelivr.net/npm/flag-icons@7.3.2/flags/4x3/${code}.svg`,
+    `https://flagcdn.com/w1280/${code}.png`
+  ].filter(Boolean);
+  let lastError = new Error('flag_unavailable');
+  for (const source of sources) {
+    try {
+      const response = await fetchWithTimeout(source);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('empty_flag');
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        return { image: await loadImageWithTimeout(objectUrl), objectUrl };
+      } catch (error) {
+        URL.revokeObjectURL(objectUrl);
+        throw error;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 async function loadCountryFlag(side) {
@@ -1548,12 +1670,8 @@ async function loadCountryFlag(side) {
   button.disabled = true;
   button.textContent = 'جارٍ التحميل…';
   try {
-    const response = await fetch(`https://flagcdn.com/w1280/${code}.png`, { mode: 'cors' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const image = await loadImage(objectUrl);
-    await setFlagImage(side, image, input.value.trim() || code.toUpperCase(), objectUrl);
+    const { image, objectUrl } = await fetchCountryFlag(code);
+    await setFlagImage(side, image, input.value.trim() || code.toUpperCase(), objectUrl, code);
   } catch (error) {
     console.error(error);
     showToast('تعذّر تحميل العلم؛ استخدم اختيار صورة أو اللصق');
@@ -1614,7 +1732,7 @@ function createExportCanvas(slide) {
 }
 
 function exportFileName(slide, index) {
-  if (currentMode === 'flags') return 'sana-two-flags.png';
+  if (currentMode === 'flags') return `sana-two-flags-${flagState.background}.png`;
   const number = String(index + 1).padStart(2, '0');
   return `sana-${currentMode}-album-${number}${isCover(slide) ? '-cover' : ''}.png`;
 }
@@ -1640,6 +1758,41 @@ function downloadCanvas(slide, index) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+async function downloadFlagsImage() {
+  if (flagState.exporting) return;
+  flagState.exporting = true;
+  const button = $('downloadFlags');
+  const headerButton = $('exportOne');
+  button.disabled = headerButton.disabled = true;
+  button.textContent = 'جارٍ تجهيز الصورة كاملة…';
+  try {
+    const filename = exportFileName(null, 0);
+    const output = createExportCanvas(null);
+    const blob = await new Promise((resolve, reject) => output.toBlob((value) => {
+      if (value) resolve(value); else reject(new Error('png_export_failed'));
+    }, 'image/png'));
+    if (flagState.downloadUrl) URL.revokeObjectURL(flagState.downloadUrl);
+    flagState.downloadUrl = URL.createObjectURL(blob);
+    const link = $('flagsDownloadLink');
+    link.href = flagState.downloadUrl;
+    link.download = filename;
+    link.hidden = false;
+    // Blob URLs support full-resolution PNGs without a huge data URL. Keep
+    // the ready link visible for browsers that require a second user gesture.
+    link.click();
+    $('status').textContent = 'الصورة كاملة جاهزة للتنزيل — 8192 × 5112 PNG';
+    showToast('الصورة جاهزة — يمكنك تنزيلها من الرابط أيضاً');
+  } catch (error) {
+    console.error(error);
+    showToast('تعذّر تجهيز الصورة، حاول مجدداً');
+  } finally {
+    flagState.exporting = false;
+    button.disabled = false;
+    headerButton.disabled = currentMode !== 'flags' && !current();
+    button.textContent = '↓ تحميل الصورة كاملة PNG';
+  }
 }
 
 let crcTable;
@@ -1922,10 +2075,23 @@ $('rightCountry').addEventListener('keydown', (event) => { if (event.key === 'En
 $('leftCountry').addEventListener('input', () => queueCountryFlagLoad('left'));
 $('rightCountry').addEventListener('input', () => queueCountryFlagLoad('right'));
 $('flipFlags').addEventListener('click', flipFlags);
+document.querySelectorAll('[data-flag-background]').forEach((button) => {
+  button.addEventListener('click', () => {
+    flagState.background = button.dataset.flagBackground;
+    document.querySelectorAll('[data-flag-background]').forEach((item) => {
+      const active = item.dataset.flagBackground === flagState.background;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+    syncControls();
+    scheduleRender();
+  });
+});
+$('downloadFlags').addEventListener('click', () => $('exportOne').click());
 $('resetFlags').addEventListener('click', () => {
   ['left','right'].forEach((side) => {
     if (flagState[side].objectUrl) URL.revokeObjectURL(flagState[side].objectUrl);
-    Object.assign(flagState[side], { image: null, label: '', objectUrl: '' });
+    Object.assign(flagState[side], { image: null, label: '', objectUrl: '', countryCode: '' });
     $(`${side}FlagStatus`).textContent = 'بانتظار علم';
   });
   $('leftCountry').value = '';
@@ -2065,6 +2231,7 @@ $('deleteSlide').addEventListener('click', () => {
   syncControls(); renderFilmstrip(); scheduleRender(); showToast('تم حذف الصورة');
 });
 $('exportOne').addEventListener('click', () => {
+  if (currentMode === 'flags') { downloadFlagsImage(); return; }
   try {
     downloadCanvas(current(), selected);
     showToast('تم تصدير الصورة');
@@ -2115,7 +2282,7 @@ async function init() {
       document.fonts.load('800 78px NotoSansCondensedExtraBold')
     ]), 1600);
   } catch (_) {}
-  await Promise.all([sanaBadge, brandLayout, sanaLogo, albumEssentials, albumGradientTop, albumGradientLeft, albumGradientRight, facebookBrandLayout, facebookCoverOverlay, quoteLogo, quoteDot, quotesEssential, quotesLeftShade, quotesPanelClean, quotesGlowWide, quotesGlowLine, reporterEssential, reporterBadge, flagsMockupBlank, flagLeftMask, flagRightMask, flagLeftCutMask, flagRightCutMask].map((image) => settleWithin(new Promise((resolve) => {
+  await Promise.all([sanaBadge, brandLayout, sanaLogo, albumEssentials, albumGradientTop, albumGradientLeft, albumGradientRight, facebookBrandLayout, facebookCoverOverlay, quoteLogo, quoteDot, quotesEssential, quotesLeftShade, quotesPanelClean, quotesGlowWide, quotesGlowLine, reporterEssential, reporterBadge, flagsMockupBlank, flagsSkyBackground, flagLeftCloth, flagRightCloth, flagLeftMask, flagRightMask, flagLeftCutMask, flagRightCutMask].map((image) => settleWithin(new Promise((resolve) => {
     if (image.complete) resolve(); else { image.onload = resolve; image.onerror = resolve; }
   }), 4000)));
   prepareBrandLayout();

@@ -34,6 +34,15 @@
   min-height: 42px;
 }
 
+.flag-background-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.flag-background-options button { flex: 1 1 auto; }
+.flag-background-options button.active { color: #fff; background: #137fa8; border-color: #137fa8; }
+.flag-download-link { display: block; margin-top: 12px; padding: 10px; text-align: center; color: #137fa8; text-decoration: underline; }
+.flag-download-link[hidden] { display: none; }
+.stage.flags.transparent-background {
+  background: repeating-conic-gradient(#e0e5ea 0% 25%, #fff 0% 50%) 0 0 / 24px 24px;
+}
+
 .flag-control-card.active-side {
   outline: 2px solid #18b9df;
   outline-offset: -2px;

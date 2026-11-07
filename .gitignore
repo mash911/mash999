@@ -1,0 +1,7 @@
+.sites-runtime/
+site-package.tar.gz
+release-backups/
+.vercel/
+.env
+.env.*
+!.env.example
