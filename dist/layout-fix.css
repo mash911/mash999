@@ -1,0 +1,66 @@
+main{direction:ltr}
+.album-mode{
+  display:flex;
+  direction:rtl;
+  gap:10px;
+  max-width:760px;
+  margin:18px auto 0;
+  padding:0 20px;
+}
+.album-mode button{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  min-height:62px;
+  border:1px solid #cfdee9;
+  border-radius:16px;
+  color:#31546d;
+  background:#fff;
+  box-shadow:0 7px 20px #173e5c0d;
+}
+.album-mode button.active{
+  color:#fff;
+  background:#17477f;
+  border-color:#17477f;
+  box-shadow:0 9px 24px #17477f36;
+}
+.album-mode button span:last-child{display:flex;flex-direction:column;text-align:right;line-height:1.35}
+.album-mode button b{font-size:16px}
+.album-mode button small{opacity:.72;direction:ltr;font-size:11px}
+.mode-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#e7f4fb;color:#078fc5;font-weight:800;font-size:18px}
+.album-mode button.active .mode-icon{background:#ffffff1c;color:#fff}
+.stage.facebook{aspect-ratio:16/9}
+.stage.facebook canvas,.stage.facebook img{aspect-ratio:16/9;object-fit:contain}
+.thumb.facebook canvas{aspect-ratio:16/9}
+.brand-logo{display:block;width:110px;height:auto;border-left:1px solid #dde6ee;padding-left:24px;box-sizing:content-box}
+aside{grid-column:1;grid-row:1;direction:rtl}
+.workspace{grid-column:2;grid-row:1;direction:rtl}
+.stage.dragging{outline:4px dashed #0098d0;background:#cfeefa}
+.thumb canvas{background:#dbe4ec}
+.thumb .download-slide{
+  display:block;
+  width:100%;
+  margin-top:7px;
+  padding:7px 8px;
+  background:#078fc5;
+  border-color:#078fc5;
+  color:#fff;
+  font-size:12px;
+  font-weight:600;
+}
+.thumb .download-slide:hover{background:#087cac}
+@media(max-width:720px){
+  .album-mode{margin-top:12px;padding:0 10px;gap:7px}
+  .album-mode button{min-height:55px;padding:7px}
+  .brand-logo{width:92px;padding-left:16px}
+  main{display:grid;grid-template-columns:260px minmax(0,1fr);gap:10px;padding:10px}
+  aside{grid-column:1;grid-row:1;max-height:calc(100vh - 130px)}
+  .workspace{grid-column:2;grid-row:1;order:initial}
+}
+@media(max-width:520px){
+  main{display:flex;flex-direction:column}
+  .workspace{order:-1}
+  aside{max-height:none}
+}

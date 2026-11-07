@@ -1,0 +1,42 @@
+@font-face {
+  font-family: GhroobRegular;
+  src: url('assets/Ghroob-Regular.otf');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: GhroobBoldRound;
+  src: url('assets/Ghroob-Bold.otf');
+  font-feature-settings: 'ss05' 1;
+  font-display: swap;
+}
+
+.album-mode { max-width: 980px; }
+.stage.quotes { aspect-ratio: 4 / 5; max-width: 850px; margin-inline: auto; }
+.stage.quotes canvas,
+.stage.quotes img { aspect-ratio: 4 / 5; object-fit: contain; }
+.thumb.quotes canvas { aspect-ratio: 4 / 5; }
+.stage.reporter { aspect-ratio: 4 / 5; max-width: 850px; margin-inline: auto; }
+.stage.reporter canvas,
+.stage.reporter img { aspect-ratio: 4 / 5; object-fit: contain; }
+.thumb.reporter canvas { aspect-ratio: 4 / 5; }
+.quote-section { background: linear-gradient(145deg, #fff, #f2f9fc); }
+.reporter-section { background: linear-gradient(145deg, #fff, #f3f8fc); }
+.field-label { display:block; margin: 14px 0 6px; font-size:14px; }
+.text-field {
+  width:100%;
+  border:1px solid #d3e1eb;
+  border-radius:10px;
+  padding:10px 12px;
+  color:#23405c;
+  background:#fcfdff;
+}
+#quoteControls textarea,
+#quoteControls .text-field { font-family: GhroobRegular, Tahoma, sans-serif; font-size:18px; }
+#quoteText { min-height:230px; line-height:1.65; }
+.quote-manual-kashida { margin-top:9px; background:#fff; }
+
+@media(max-width:720px){
+  .album-mode{overflow-x:auto;justify-content:flex-start}
+  .album-mode button{min-width:180px}
+}

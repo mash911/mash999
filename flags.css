@@ -1,0 +1,75 @@
+.stage.flags {
+  aspect-ratio: 8192 / 5112;
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
+.stage.flags canvas,
+.stage.flags img {
+  aspect-ratio: 8192 / 5112;
+  object-fit: contain;
+}
+
+.flags-help,
+.flag-control-card {
+  background: linear-gradient(145deg, #fff, #f1f8fc);
+}
+
+.flag-side-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.flag-side-switch button.active {
+  color: #fff;
+  border-color: #137fa8;
+  background: #137fa8;
+  box-shadow: 0 6px 16px rgba(19, 127, 168, .18);
+}
+
+.flag-flip {
+  margin-top: 10px;
+  min-height: 42px;
+}
+
+.flag-control-card.active-side {
+  outline: 2px solid #18b9df;
+  outline-offset: -2px;
+}
+
+.flag-control-card .two {
+  align-items: stretch;
+  margin-top: 10px;
+}
+
+.upload.compact {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.country-input {
+  font-family: Tahoma, Arial, sans-serif;
+  font-size: 15px;
+}
+
+body.flags-mode .album-head,
+body.flags-mode #filmstrip,
+body.flags-mode .privacy,
+body.flags-mode #exportAll {
+  display: none !important;
+}
+
+body.flags-mode .preview-footer {
+  margin-bottom: 10px;
+}
+
+@media(max-width:720px){
+  .stage.flags { width: 100%; }
+}
