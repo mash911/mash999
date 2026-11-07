@@ -50,4 +50,3 @@ $manifest = [ordered]@{
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $backupDir 'manifest.json') -Encoding utf8
 [pscustomobject]@{ BackupDirectory = $backupDir; Files = $fileCount; SourceCommit = $commit; Verified = $true }
-

@@ -47,4 +47,3 @@ Publish future completed updates there as well as to the existing Vercel project
 - Keep the existing `sites` Git remote; do not replace it with the GitHub URL.
 - The imported pre-update production snapshot is kept on
   `backup/vercel-before-2026-11-07`.
-
